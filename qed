@@ -30,6 +30,16 @@ GREEN='\033[01;32m'
 YELLOW='\033[01;33m'
 BLUE='\033[01;34m'
 
+# define logging fumctions
+logme() {
+	echo "\n${GREEN}$*${RESTORE}\n"
+}
+
+fatal() {
+	echo "\n${RED}$*${RESTORE}\n" >&2
+	exit 1
+}
+
 # define usage
 usage() {
 	echo "usage: $0 [-h] [-d DISTRIBUTION] [-i] [-l] [-r] [-b] [-p] [CMD ARGS]"
@@ -56,7 +66,7 @@ remove() {
 
 run() {
 	if [ -z "$*" ]; then
-		usage 2
+		fatal "no command to execute supplied"
 	fi
 
 	if ${rebuild}; then
@@ -72,7 +82,7 @@ run() {
 		docker tag ${distribution} ${project}-${distribution}
 	fi
 
-	echo "running command '$@' within ${distribution}"
+	logme "running command '$@' within ${distribution} (docker image is ${hash}-${project}-${distribution_sanitized})"
 	exec docker run \
 		--rm \
 		${interactive} \
