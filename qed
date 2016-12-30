@@ -67,7 +67,7 @@ remove() {
 docker_prepare() {
 	# force pull if docker image is not found (and 'build' is not requested)
 	if ! ${pull} && ! ${rebuild}; then
-		if [ -z "`docker images -q ${hash}-${project}-${distribution}`" ]; then
+		if [ -z "`docker images -q ${hash}-${project}-${distribution_sanitized}`" ]; then
 			pull=true
 		fi
 	fi
