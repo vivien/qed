@@ -49,6 +49,7 @@ usage() {
 	echo "	-i	enter interactive mode"
 	echo "	-b	force re-build of a local docker base image"
 	echo "	-p	force pull of docker base image from registry"
+	echo "	-f	force re-creation of the docker container"
 	echo "	-r	remove all containers associated to current working directory"
 }
 
@@ -114,7 +115,11 @@ docker_exec() {
 		fatal "no command to execute supplied"
 	fi
 
-	if [ -z "`docker ps -aq --filter=name=${hash}-${project}-${distribution_sanitized}`" ]; then
+	if ${flush}; then
+		# flush is required, so recreate the container
+		docker_run
+
+	elif [ -z "`docker ps -aq --filter=name=${hash}-${project}-${distribution_sanitized}`" ]; then
 		# no container exists, so create one
 		docker_run
 
@@ -142,6 +147,7 @@ pull=false
 list=false
 remove=false
 action=run
+flush=false
 
 # source global config file if found
 if [ -f ${HOME}/.qed/config ]; then
@@ -154,13 +160,14 @@ if [ -f .qed/config ]; then
 fi
 
 # parse parameters
-while getopts "hd:ilrbp" opt; do
+while getopts "hd:ilrbpf" opt; do
 	case $opt in
 		h) usage; exit 0 ;;
 		d) distribution="${OPTARG}" ;;
 		i) interactive="--interactive --tty" ;;
 		b) rebuild=true ;;
 		p) pull=true ;;
+		f) flush=true ;;
 		l) action=list ;;
 		r) action=remove ;;
 		*) usage; exit 1 ;;
