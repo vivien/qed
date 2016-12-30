@@ -1,0 +1,5 @@
+# use ubuntu:16.04 as the default distribution
+distribution="ubuntu:16.04"
+
+# set an HTTP proxy to use while building docker image
+docker_build_args="--build-arg http_proxy=http://172.17.0.1:18080"
