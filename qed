@@ -45,7 +45,7 @@ usage() {
 	echo "usage: $0 [-h] [-d DISTRIBUTION] [-i] [-l] [-r] [-b] [-p] [CMD ARGS]"
 	echo
 	echo "	-h	show this help message"
-	echo "	-d	target distribution"
+	echo "	-d	target distribution image (a custom one can be used, like 'my.registry/builder/ubuntu:10.04')"
 	echo "	-i	enter interactive mode"
 	echo "	-b	force re-build of a local docker base image"
 	echo "	-p	force pull of docker base image from registry"
@@ -69,17 +69,19 @@ run() {
 		fatal "no command to execute supplied"
 	fi
 
+	# (re)build docker image
 	if ${rebuild}; then
 		if [ -f ".qed/dockerfile.${distribution}" ]; then
 			docker build \
-				--tag ${project}-${distribution} \
+				--tag ${hash}-${project}-${distribution_sanitized} \
 				--file .qed/dockerfile.${distribution} \
 				.qed/
 		fi
 
+	# only pull distribution image to use it directly (without any changes)
 	elif ${pull}; then
 		docker pull ${distribution}
-		docker tag ${distribution} ${project}-${distribution}
+		docker tag ${distribution} ${hash}-${project}-${distribution_sanitized}
 	fi
 
 	logme "running command '$@' within ${distribution} (docker image is ${hash}-${project}-${distribution_sanitized})"
@@ -89,7 +91,7 @@ run() {
 		--volume ${PWD}:${PWD} \
 		--workdir ${PWD} \
 		--user `id -u`:`id -g` \
-		${project}-${distribution} \
+		${hash}-${project}-${distribution_sanitized} \
 		$@
 }
 
@@ -97,6 +99,7 @@ run() {
 distribution=default
 curdir=${PWD}
 project=$(basename ${PWD})
+hash=$(pwd | sha1sum | cut -c 1-8)
 interactive=
 rebuild=false
 pull=false
@@ -118,13 +121,22 @@ while getopts "hd:ilrbp" opt; do
 	esac
 done
 
+# skip all qed parameters
 shift "$((OPTIND-1))"
+
+# check distribution parameter
+if [ -z "${distribution}" ]; then
+	fatal "distribution is not set"
+fi
+
+# sanitize distribution name
+distribution_sanitized=`echo ${distribution} | sed 's/:/-/g' | rev | cut -d/ -f1 | rev`
 
 # check action
 case ${action} in
 	list|remove|run)
 		${action} $@;;
-	
+
 	*)
 		usage 3 ;;
 esac
