@@ -32,11 +32,11 @@ BLUE='\033[01;34m'
 
 # define logging fumctions
 logme() {
-	echo "\n${GREEN}$*${RESTORE}\n"
+	echo "${GREEN}qed: $*${RESTORE}"
 }
 
 fatal() {
-	echo "\n${RED}$*${RESTORE}\n" >&2
+	echo "\n${RED}qed: $*${RESTORE}\n" >&2
 	exit 1
 }
 
@@ -62,11 +62,8 @@ remove() {
 	# TODO
 }
 
-run() {
-	if [ -z "$*" ]; then
-		fatal "no command to execute supplied"
-	fi
-
+# prepare docker image
+docker_prepare() {
 	# force pull if docker image is not found (and 'build' is not requested)
 	if ! ${pull} && ! ${rebuild}; then
 		if [ -z "`docker images -q ${hash}-${project}-${distribution}`" ]; then
@@ -92,14 +89,44 @@ run() {
 		docker pull ${distribution}
 		docker tag ${distribution} ${hash}-${project}-${distribution_sanitized}
 	fi
+}
 
-	logme "running command '$@' within ${distribution} (docker image is ${hash}-${project}-${distribution_sanitized})"
-	exec docker run \
-		--rm \
-		${interactive} \
+# run (or start) docker container
+docker_run() {
+	# flush and recreate docker container (if any)
+	docker rm -f ${hash}-${project}-${distribution_sanitized} 2>/dev/null || true
+
+	logme "starting new container based on ${distribution} (docker image is ${hash}-${project}-${distribution_sanitized})"
+	docker run \
+		--detach \
+		--name ${hash}-${project}-${distribution_sanitized} \
+		--hostname ${hash}-${project}-${distribution_sanitized} \
 		--volume ${PWD}:${PWD} \
 		--workdir ${PWD} \
 		--user `id -u`:`id -g` \
+		${hash}-${project}-${distribution_sanitized} \
+		sleep INFINITY
+}
+
+# execute command inside docker container
+docker_exec() {
+	if [ -z "$*" ]; then
+		fatal "no command to execute supplied"
+	fi
+
+	if [ -z "`docker ps -aq --filter=name=${hash}-${project}-${distribution_sanitized}`" ]; then
+		# no container exists, so create one
+		docker_run
+
+	else
+		# container already exists, so make sure that it's running
+		docker start ${hash}-${project}-${distribution_sanitized} >/dev/null
+	fi
+
+	logme "running command '$@' on ${distribution}"
+
+	exec docker exec \
+		${interactive} \
 		${hash}-${project}-${distribution_sanitized} \
 		$@
 }
@@ -153,8 +180,14 @@ distribution_sanitized=`echo ${distribution} | sed 's/:/-/g' | rev | cut -d/ -f1
 
 # check action
 case ${action} in
-	list|remove|run)
-		${action} $@;;
+	list|remove)
+		${action}
+		;;
+
+	run)
+		docker_prepare
+		docker_exec $@
+		;;
 
 	*)
 		fatal "unsupported action ${action}" ;;
