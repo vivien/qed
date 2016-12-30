@@ -106,8 +106,8 @@ run() {
 		$@
 }
 
-# default values
-distribution=default
+# default values (some of them can be set in configuration files)
+distribution=
 curdir=${PWD}
 project=$(basename ${PWD})
 hash=$(pwd | sha1sum | cut -c 1-8)
@@ -117,6 +117,16 @@ pull=false
 list=false
 remove=false
 action=run
+
+# source global config file if found
+if [ -f ${HOME}/.qed/config ]; then
+	. ${HOME}/.qed/config
+fi
+
+# source local config file if found
+if [ -f .qed/config ]; then
+	. .qed/config
+fi
 
 # parse parameters
 while getopts "hd:ilrbp" opt; do
