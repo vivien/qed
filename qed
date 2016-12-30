@@ -104,9 +104,19 @@ docker_run() {
 		--hostname ${hash}-${project}-${distribution_sanitized} \
 		--volume ${PWD}:${PWD} \
 		--workdir ${PWD} \
-		--user `id -u`:`id -g` \
+		--user ${uid}:${gid} \
 		${hash}-${project}-${distribution_sanitized} \
 		sleep INFINITY
+
+	# create uid and gid in the container if their are not present
+	# this will also make them fit with the current user/group names
+	if ! docker exec ${hash}-${project}-${distribution_sanitized} id -g ${gid} >/dev/null 2>&1; then
+		docker exec --user root ${hash}-${project}-${distribution_sanitized} groupadd --gid ${gid} `id -gn`
+	fi
+
+	if ! docker exec ${hash}-${project}-${distribution_sanitized} id -u ${uid} >/dev/null 2>&1; then
+		docker exec --user root ${hash}-${project}-${distribution_sanitized} useradd --uid ${uid} --gid ${gid} `id -un`
+	fi
 }
 
 # execute command inside docker container
@@ -141,6 +151,8 @@ distribution=
 curdir=${PWD}
 project=$(basename ${PWD})
 hash=$(pwd | sha1sum | cut -c 1-8)
+uid=`id -u`
+gid=`id -g`
 interactive=
 rebuild=false
 pull=false
