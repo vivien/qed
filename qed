@@ -83,6 +83,9 @@ run() {
 				--tag ${hash}-${project}-${distribution_sanitized} \
 				--file .qed/dockerfile.${distribution} \
 				.qed/
+
+		else
+			fatal "no dockerfile corresponding to ${distribution} found in .qed/ directory"
 		fi
 
 	# only pull distribution image to use it directly (without any changes)
