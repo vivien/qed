@@ -50,8 +50,6 @@ usage() {
 	echo "	-b	force re-build of a local docker base image"
 	echo "	-p	force pull of docker base image from registry"
 	echo "	-r	remove all containers associated to current working directory"
-	echo
-	exit ${1:-0}
 }
 
 list() {
@@ -131,14 +129,14 @@ fi
 # parse parameters
 while getopts "hd:ilrbp" opt; do
 	case $opt in
-		h) usage 0 ;;
+		h) usage; exit 0 ;;
 		d) distribution="${OPTARG}" ;;
 		i) interactive="--interactive --tty" ;;
 		b) rebuild=true ;;
 		p) pull=true ;;
 		l) action=list ;;
 		r) action=remove ;;
-		*) usage 1;;
+		*) usage; exit 1 ;;
 	esac
 done
 
@@ -159,5 +157,5 @@ case ${action} in
 		${action} $@;;
 
 	*)
-		usage 3 ;;
+		fatal "unsupported action ${action}" ;;
 esac
