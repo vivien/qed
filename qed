@@ -195,7 +195,7 @@ if [ -z "${distribution}" ]; then
 fi
 
 # sanitize distribution name
-distribution_sanitized=`echo ${distribution} | sed 's/:/-/g' | rev | cut -d/ -f1 | rev`
+distribution_sanitized=`echo ${distribution} | sed 's/:/-/g' | sed 's/\./-/g' | rev | cut -d/ -f1 | rev`
 
 # check action
 case ${action} in
