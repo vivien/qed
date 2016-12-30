@@ -32,7 +32,9 @@ BLUE='\033[01;34m'
 
 # define logging fumctions
 logme() {
-	echo "${GREEN}qed: $*${RESTORE}"
+	if ! ${quiet}; then
+		echo "${GREEN}qed: $*${RESTORE}"
+	fi
 }
 
 fatal() {
@@ -51,6 +53,7 @@ usage() {
 	echo "	-p	force pull of docker base image from registry"
 	echo "	-f	force re-creation of the docker container"
 	echo "	-r	remove all containers associated to current working directory"
+	echo "	-q	quiet mode (do not show qed log messages)"
 }
 
 list() {
@@ -95,7 +98,7 @@ docker_prepare() {
 # run (or start) docker container
 docker_run() {
 	# flush and recreate docker container (if any)
-	docker rm -f ${hash}-${project}-${distribution_sanitized} 2>/dev/null || true
+	docker rm -f ${hash}-${project}-${distribution_sanitized} >/dev/null 2>&1 || true
 
 	logme "starting new container based on ${distribution} (docker image is ${hash}-${project}-${distribution_sanitized})"
 	docker run \
@@ -106,16 +109,16 @@ docker_run() {
 		--workdir ${PWD} \
 		--user ${uid}:${gid} \
 		${hash}-${project}-${distribution_sanitized} \
-		sleep INFINITY
+		sleep INFINITY >/dev/null
 
 	# create uid and gid in the container if their are not present
 	# this will also make them fit with the current user/group names
 	if ! docker exec ${hash}-${project}-${distribution_sanitized} id -g ${gid} >/dev/null 2>&1; then
-		docker exec --user root ${hash}-${project}-${distribution_sanitized} groupadd --gid ${gid} `id -gn`
+		docker exec --user root ${hash}-${project}-${distribution_sanitized} groupadd --gid ${gid} `id -gn` >/dev/null
 	fi
 
 	if ! docker exec ${hash}-${project}-${distribution_sanitized} id -u ${uid} >/dev/null 2>&1; then
-		docker exec --user root ${hash}-${project}-${distribution_sanitized} useradd --uid ${uid} --gid ${gid} `id -un`
+		docker exec --user root ${hash}-${project}-${distribution_sanitized} useradd --uid ${uid} --gid ${gid} `id -un` >/dev/null
 	fi
 }
 
@@ -160,6 +163,7 @@ list=false
 remove=false
 action=run
 flush=false
+quiet=false
 
 # source global config file if found
 if [ -f ${HOME}/.qed/config ]; then
@@ -172,7 +176,7 @@ if [ -f .qed/config ]; then
 fi
 
 # parse parameters
-while getopts "hd:ilrbpf" opt; do
+while getopts "hd:ilrbpfq" opt; do
 	case $opt in
 		h) usage; exit 0 ;;
 		d) distribution="${OPTARG}" ;;
@@ -182,6 +186,7 @@ while getopts "hd:ilrbpf" opt; do
 		f) flush=true ;;
 		l) action=list ;;
 		r) action=remove ;;
+		q) quiet=true ;;
 		*) usage; exit 1 ;;
 	esac
 done
