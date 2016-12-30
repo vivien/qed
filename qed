@@ -69,6 +69,13 @@ run() {
 		fatal "no command to execute supplied"
 	fi
 
+	# force pull if docker image is not found (and 'build' is not requested)
+	if ! ${pull} && ! ${rebuild}; then
+		if [ -z "`docker images -q ${hash}-${project}-${distribution}`" ]; then
+			pull=true
+		fi
+	fi
+
 	# (re)build docker image
 	if ${rebuild}; then
 		if [ -f ".qed/dockerfile.${distribution}" ]; then
