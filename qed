@@ -93,6 +93,11 @@ docker_prepare() {
 		docker pull ${distribution}
 		docker tag ${distribution} ${hash}-${project}-${distribution_sanitized}
 	fi
+
+	# if build or pull is requested, force running container to be flushed
+	if ${pull} || ${rebuild}; then
+		flush=true
+	fi
 }
 
 # run (or start) docker container
