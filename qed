@@ -82,6 +82,7 @@ run() {
 			docker build \
 				--tag ${hash}-${project}-${distribution_sanitized} \
 				--file .qed/dockerfile.${distribution} \
+				${docker_build_args:-} \
 				.qed/
 
 		else
