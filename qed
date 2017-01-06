@@ -77,15 +77,15 @@ docker_prepare() {
 
 	# (re)build docker image
 	if ${rebuild}; then
-		if [ -f ".qed/dockerfile.${distribution}" ]; then
+		if [ -f ".qed/Dockerfile.${distribution}" ]; then
 			docker build \
 				--tag ${hash}-${project}-${distribution_sanitized} \
-				--file .qed/dockerfile.${distribution} \
+				--file .qed/Dockerfile.${distribution} \
 				${docker_build_args:-} \
 				.qed/
 
 		else
-			fatal "no dockerfile corresponding to ${distribution} found in .qed/ directory"
+			fatal "no Dockerfile corresponding to ${distribution} found in .qed/ directory"
 		fi
 
 	# only pull distribution image to use it directly (without any changes)
