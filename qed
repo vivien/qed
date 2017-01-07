@@ -155,6 +155,7 @@ docker_exec() {
 }
 
 # default values (some of them can be set in configuration files)
+configdir=${XDG_CONFIG_HOME:-${HOME}/.config}/qed
 distribution=
 curdir=${PWD}
 project=$(basename ${PWD})
@@ -171,8 +172,8 @@ flush=false
 quiet=false
 
 # source global config file if found
-if [ -f ${HOME}/.qed/config ]; then
-	. ${HOME}/.qed/config
+if [ -f ${configdir}/config ]; then
+	. ${configdir}/config
 fi
 
 # source local config file if found
