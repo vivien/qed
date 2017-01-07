@@ -33,12 +33,12 @@ BLUE='\033[01;34m'
 # define logging fumctions
 logme() {
 	if ! ${quiet}; then
-		echo "${GREEN}qed: $*${RESTORE}"
+		printf "${GREEN}qed: $*${RESTORE}\n"
 	fi
 }
 
 fatal() {
-	echo "\n${RED}qed: $*${RESTORE}\n" >&2
+	printf "\n${RED}qed: $*${RESTORE}\n\n" >&2
 	exit 1
 }
 
