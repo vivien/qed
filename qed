@@ -115,6 +115,7 @@ docker_run() {
 		--detach \
 		--name qed-${hash}-${project}-${distribution_sanitized} \
 		--hostname qed-${hash}-${project}-${distribution_sanitized} \
+		--env TERM=xterm \
 		--volume ${PWD}:${PWD} \
 		--workdir ${PWD} \
 		${ssh_args:-} \
