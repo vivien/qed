@@ -105,6 +105,11 @@ docker_run() {
 	# flush and recreate docker container (if any)
 	docker rm -f qed-${hash}-${project}-${distribution_sanitized} >/dev/null 2>&1 || true
 
+	# prepare SSH agent mapping if any
+	if [ -n "${SSH_AUTH_SOCK:-}" ]; then
+		ssh_args="--volume ${SSH_AUTH_SOCK}:/tmp/ssh-agent:ro --volume ${HOME}/.ssh:${HOME}/.ssh:ro --env SSH_AUTH_SOCK=/tmp/ssh-agent"
+	fi
+
 	logme "starting new container based on ${distribution} (docker image is qed-${hash}-${project}-${distribution_sanitized})"
 	docker run \
 		--detach \
@@ -112,6 +117,7 @@ docker_run() {
 		--hostname qed-${hash}-${project}-${distribution_sanitized} \
 		--volume ${PWD}:${PWD} \
 		--workdir ${PWD} \
+		${ssh_args:-} \
 		--user ${uid}:${gid} \
 		qed-${hash}-${project}-${distribution_sanitized} \
 		sleep INFINITY >/dev/null
