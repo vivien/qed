@@ -70,7 +70,7 @@ remove() {
 docker_prepare() {
 	# force pull if docker image is not found (and 'build' is not requested)
 	if ! ${pull} && ! ${rebuild}; then
-		if [ -z "$(docker images -q ${hash}-${project}-${distribution_sanitized})" ]; then
+		if [ -z "$(docker images -q qed-${hash}-${project}-${distribution_sanitized})" ]; then
 			pull=true
 		fi
 	fi
@@ -79,7 +79,7 @@ docker_prepare() {
 	if ${rebuild}; then
 		if [ -f ".qed/Dockerfile.${distribution}" ]; then
 			docker build \
-				--tag ${hash}-${project}-${distribution_sanitized} \
+				--tag qed-${hash}-${project}-${distribution_sanitized} \
 				--file .qed/Dockerfile.${distribution} \
 				${docker_build_args:-} \
 				.qed/
@@ -91,7 +91,7 @@ docker_prepare() {
 	# only pull distribution image to use it directly (without any changes)
 	elif ${pull}; then
 		docker pull ${distribution}
-		docker tag ${distribution} ${hash}-${project}-${distribution_sanitized}
+		docker tag ${distribution} qed-${hash}-${project}-${distribution_sanitized}
 	fi
 
 	# if build or pull is requested, force running container to be flushed
@@ -103,27 +103,27 @@ docker_prepare() {
 # run (or start) docker container
 docker_run() {
 	# flush and recreate docker container (if any)
-	docker rm -f ${hash}-${project}-${distribution_sanitized} >/dev/null 2>&1 || true
+	docker rm -f qed-${hash}-${project}-${distribution_sanitized} >/dev/null 2>&1 || true
 
-	logme "starting new container based on ${distribution} (docker image is ${hash}-${project}-${distribution_sanitized})"
+	logme "starting new container based on ${distribution} (docker image is qed-${hash}-${project}-${distribution_sanitized})"
 	docker run \
 		--detach \
-		--name ${hash}-${project}-${distribution_sanitized} \
-		--hostname ${hash}-${project}-${distribution_sanitized} \
+		--name qed-${hash}-${project}-${distribution_sanitized} \
+		--hostname qed-${hash}-${project}-${distribution_sanitized} \
 		--volume ${PWD}:${PWD} \
 		--workdir ${PWD} \
 		--user ${uid}:${gid} \
-		${hash}-${project}-${distribution_sanitized} \
+		qed-${hash}-${project}-${distribution_sanitized} \
 		sleep INFINITY >/dev/null
 
 	# create uid and gid in the container if their are not present
 	# this will also make them fit with the current user/group names
-	if ! docker exec ${hash}-${project}-${distribution_sanitized} id -g ${gid} >/dev/null 2>&1; then
-		docker exec --user root ${hash}-${project}-${distribution_sanitized} groupadd --gid ${gid} "$(id -gn)" >/dev/null
+	if ! docker exec qed-${hash}-${project}-${distribution_sanitized} id -g ${gid} >/dev/null 2>&1; then
+		docker exec --user root qed-${hash}-${project}-${distribution_sanitized} groupadd --gid ${gid} "$(id -gn)" >/dev/null
 	fi
 
-	if ! docker exec ${hash}-${project}-${distribution_sanitized} id -u ${uid} >/dev/null 2>&1; then
-		docker exec --user root ${hash}-${project}-${distribution_sanitized} useradd --uid ${uid} --gid ${gid} "$(id -un)" >/dev/null
+	if ! docker exec qed-${hash}-${project}-${distribution_sanitized} id -u ${uid} >/dev/null 2>&1; then
+		docker exec --user root qed-${hash}-${project}-${distribution_sanitized} useradd --uid ${uid} --gid ${gid} "$(id -un)" >/dev/null
 	fi
 }
 
@@ -137,20 +137,20 @@ docker_exec() {
 		# flush is required, so recreate the container
 		docker_run
 
-	elif [ -z "$(docker ps -aq --filter=name=${hash}-${project}-${distribution_sanitized})" ]; then
+	elif [ -z "$(docker ps -aq --filter=name=qed-${hash}-${project}-${distribution_sanitized})" ]; then
 		# no container exists, so create one
 		docker_run
 
 	else
 		# container already exists, so make sure that it's running
-		docker start ${hash}-${project}-${distribution_sanitized} >/dev/null
+		docker start qed-${hash}-${project}-${distribution_sanitized} >/dev/null
 	fi
 
 	logme "running command '$*' on ${distribution}"
 
 	exec docker exec \
 		${interactive} \
-		${hash}-${project}-${distribution_sanitized} \
+		qed-${hash}-${project}-${distribution_sanitized} \
 		"$@"
 }
 
