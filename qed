@@ -191,6 +191,18 @@ qed_get_local_config_dir() {
 		tmpdir=$(dirname ${tmpdir})
 	done
 
+	# try to find a .qed directory in one of our parents directories
+	tmpdir=${curdir}
+	while [ "${tmpdir}" != "/" ]; do
+		# if we have a match, consider directory as qed base directory
+		if [ -d "${tmpdir}/.qed" ]; then
+			echo ${tmpdir}/.qed
+			return
+		fi
+
+		tmpdir=$(dirname ${tmpdir})
+	done
+
 	# we do not have any matches, current directory is considered as qed base directory
 	echo ${curdir}/.qed
 }
