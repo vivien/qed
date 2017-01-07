@@ -47,6 +47,7 @@ usage() {
 	echo "usage: $0 [-h] [-d DISTRIBUTION] [-i] [-l] [-r] [-b] [-p] [CMD ARGS]"
 	echo
 	echo "	-h	show this help message"
+	echo "	-c	local configuration directory (default to autodetect)"
 	echo "	-d	target distribution image (a custom one can be used, like 'my.registry/builder/ubuntu:10.04')"
 	echo "	-i	enter interactive mode"
 	echo "	-b	force re-build of a local docker base image"
@@ -164,6 +165,12 @@ docker_exec() {
 
 # try to find an existing container related to our parents directories
 qed_get_local_config_dir() {
+	# local config directory has already been set via CLI, return it
+	if [ -n "${local_config_dir:-}" ]; then
+		echo ${local_config_dir}
+		return
+	fi
+
 	# moonwalk is not enabled, current directory is considered as qed base directory
 	if ! ${moonwalk}; then
 		echo ${curdir}/.qed
@@ -211,9 +218,10 @@ if [ -f ${global_config_dir}/config ]; then
 fi
 
 # parse parameters
-while getopts "hd:ilrbpwfq" opt; do
+while getopts "hc:d:ilrbpwfq" opt; do
 	case $opt in
 		h) usage; exit 0 ;;
+		c) local_config_dir="${OPTARG}" ;;
 		d) distribution="${OPTARG}" ;;
 		i) interactive="--interactive --tty" ;;
 		b) rebuild=true ;;
