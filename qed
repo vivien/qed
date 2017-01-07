@@ -52,6 +52,7 @@ usage() {
 	echo "	-b	force re-build of a local docker base image"
 	echo "	-p	force pull of docker base image from registry"
 	echo "	-f	force re-creation of the docker container"
+	echo "	-w	enable moonwalk mode (usefull when running qed commands in subdirectories)"
 	echo "	-r	remove all containers associated to current working directory"
 	echo "	-q	quiet mode (do not show qed log messages)"
 }
@@ -77,15 +78,15 @@ docker_prepare() {
 
 	# (re)build docker image
 	if ${rebuild}; then
-		if [ -f ".qed/Dockerfile.${distribution}" ]; then
+		if [ -f "${local_config_dir}/Dockerfile.${distribution}" ]; then
 			docker build \
 				--tag qed-${hash}-${project}-${distribution_sanitized} \
-				--file .qed/Dockerfile.${distribution} \
+				--file ${local_config_dir}/Dockerfile.${distribution} \
 				${docker_build_args:-} \
-				.qed/
+				${local_config_dir}/
 
 		else
-			fatal "no Dockerfile corresponding to ${distribution} found in .qed/ directory"
+			fatal "no Dockerfile corresponding to ${distribution} found in ${local_config_dir}/ directory"
 		fi
 
 	# only pull distribution image to use it directly (without any changes)
@@ -161,16 +162,42 @@ docker_exec() {
 		"$@"
 }
 
+# try to find an existing container related to our parents directories
+qed_get_local_config_dir() {
+	# moonwalk is not enabled, current directory is considered as qed base directory
+	if ! ${moonwalk}; then
+		echo ${curdir}/.qed
+		return
+	fi
+
+	# try to find an existing container related to our parents directories
+	tmpdir=${curdir}
+	while [ "${tmpdir}" != "/" ]; do
+		tmphash=$(echo ${tmpdir} | sha1sum | cut -c 1-8)
+
+		# if we have a match, consider directory as qed base directory
+		if docker ps -a --format '{{ .Names }}' | grep -q ^qed-${tmphash}-; then
+			echo ${tmpdir}/.qed
+			return
+		fi
+
+		tmpdir=$(dirname ${tmpdir})
+	done
+
+	# we do not have any matches, current directory is considered as qed base directory
+	echo ${curdir}/.qed
+}
+
 # default values (some of them can be set in configuration files)
-configdir=${XDG_CONFIG_HOME:-${HOME}/.config}/qed
+global_config_dir=${XDG_CONFIG_HOME:-${HOME}/.config}/qed
+local_config_dir=
 distribution=
 curdir=${PWD}
-project=$(basename ${PWD})
-hash=$(pwd | sha1sum | cut -c 1-8)
 uid=$(id -u)
 gid=$(id -g)
 interactive=
 rebuild=false
+moonwalk=false
 pull=false
 list=false
 remove=false
@@ -179,17 +206,12 @@ flush=false
 quiet=false
 
 # source global config file if found
-if [ -f ${configdir}/config ]; then
-	. ${configdir}/config
-fi
-
-# source local config file if found
-if [ -f .qed/config ]; then
-	. .qed/config
+if [ -f ${global_config_dir}/config ]; then
+	. ${global_config_dir}/config
 fi
 
 # parse parameters
-while getopts "hd:ilrbpfq" opt; do
+while getopts "hd:ilrbpwfq" opt; do
 	case $opt in
 		h) usage; exit 0 ;;
 		d) distribution="${OPTARG}" ;;
@@ -197,12 +219,26 @@ while getopts "hd:ilrbpfq" opt; do
 		b) rebuild=true ;;
 		p) pull=true ;;
 		f) flush=true ;;
+		w) moonwalk=true ;;
 		l) action=list ;;
 		r) action=remove ;;
 		q) quiet=true ;;
 		*) usage; exit 1 ;;
 	esac
 done
+
+# detect local config directory
+local_config_dir=$(qed_get_local_config_dir)
+
+# source local config file if found
+if [ -f ${local_config_dir}/config ]; then
+	. ${local_config_dir}/config
+fi
+
+# dynamic variables
+project_dir=$(dirname ${local_config_dir})
+project=$(basename ${project_dir})
+hash=$(echo ${project_dir} | sha1sum | cut -c 1-8)
 
 # skip all qed parameters
 shift "$((OPTIND-1))"
